@@ -110,19 +110,17 @@ jobs:
 
       - name: Clone and scan discovered repos
         id: clone
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAMES: ${{ needs.discover.outputs.repo-names }}
         run: |
           set -e
           mkdir -p _src
 
-          # Parse JSON array from env
-          python3 -c "
-          import json, subprocess, sys
-          repos = json.loads('${REPO_NAMES}')
+          # Clone each repo using GITHUB_TOKEN (auto-provided by GitHub Actions)
+          echo "${{ needs.discover.outputs.repo-names }}" | python3 -c "
+          import json, subprocess, sys, os
+          repos = json.loads(sys.stdin.read())
+          token = os.environ.get('GITHUB_TOKEN', '')
           for name in repos:
-              url = f'https://x-access-token:\${{GITHUB_TOKEN}}@github.com/bonsai/{name}.git'
+              url = f'https://x-access-token:{token}@github.com/bonsai/{name}.git'
               print(f'Cloning {name}...')
               subprocess.run(['git', 'clone', '--depth', '1', url, f'_src/{name}'], check=True)
               print(f'  -> _src/{name}')
@@ -152,7 +150,6 @@ jobs:
             --min-score 0.5
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        if: always()
 
       - name: Build SQLite DB
         run: python scripts/build_db.py --data data --db db/talk.db
