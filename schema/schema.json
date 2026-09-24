@@ -1,0 +1,68 @@
+{
+  "description": "talk-db schema: corpus index for bonsai texts",
+  "version": "0.1.0",
+  "tables": {
+    "works": {
+      "primaryKey": "id",
+      "columns": {
+        "id": "TEXT",
+        "repo": "TEXT NOT NULL",
+        "path": "TEXT NOT NULL",
+        "title": "TEXT",
+        "author": "TEXT",
+        "type": "TEXT",
+        "genre": "TEXT (JSON array)",
+        "language": "TEXT",
+        "summary": "TEXT",
+        "source_url": "TEXT",
+        "commit_sha": "TEXT",
+        "content_hash": "TEXT",
+        "status": "TEXT",
+        "created_at": "TEXT (ISO8601)",
+        "updated_at": "TEXT (ISO8601)"
+      },
+      "unique": [["repo", "path", "commit_sha"]]
+    },
+    "passages": {
+      "primaryKey": "id",
+      "columns": {
+        "id": "TEXT",
+        "work_id": "TEXT NOT NULL",
+        "parent_id": "TEXT",
+        "type": "TEXT",
+        "ordinal": "INTEGER NOT NULL",
+        "text": "TEXT NOT NULL",
+        "start_line": "INTEGER",
+        "end_line": "INTEGER",
+        "created_at": "TEXT"
+      },
+      "indexes": ["work_id", "parent_id"]
+    },
+    "concepts": {
+      "primaryKey": "id",
+      "columns": {
+        "id": "TEXT",
+        "name": "TEXT NOT NULL UNIQUE",
+        "type": "TEXT",
+        "description": "TEXT"
+      }
+    },
+    "passage_concepts": {
+      "primaryKey": ["passage_id", "concept_id"],
+      "columns": {
+        "passage_id": "TEXT NOT NULL",
+        "concept_id": "TEXT NOT NULL",
+        "confidence": "REAL",
+        "extractor": "TEXT"
+      },
+      "indexes": ["concept_id", "passage_id"]
+    }
+  },
+  "virtualTables": {
+    "passages_fts": {
+      "type": "fts5",
+      "source": "passages"
+    }
+  },
+  "futureTables": ["relations", "talk_patterns", "characters", "sources"]
+}

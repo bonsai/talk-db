@@ -1,0 +1,48 @@
+name: ingest
+
+on:
+  workflow_dispatch:
+  schedule:
+    # daily at 05:00 UTC
+    - cron: "0 5 * * *"
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout talk-db
+        uses: actions/checkout@v4
+
+      - name: Checkout source repos
+        uses: actions/checkout@v4
+        with:
+          repository: bonsai/talkscripts
+          path: _src/talkscripts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r scripts/requirements.txt
+
+      - name: Ingest works
+        run: python scripts/ingest.py --repos _src/talkscripts --output data
+
+      - name: Build SQLite DB
+        run: python scripts/build_db.py --data data --db db/talk.db
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ db/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "auto: ingest $(date -u +%Y-%m-%d)"
+            git push
+          fi

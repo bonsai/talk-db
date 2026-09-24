@@ -1,0 +1,5 @@
+{"id": "surprise", "name": "意外な転換", "description": "読者の予想を裏切る転換点", "pattern": "A → B → unexpected_C"}
+{"id": "question", "name": "問い", "description": "状況から問いを立て、それを掘り下げる", "pattern": "situation → question → exploration"}
+{"id": "contradiction", "name": "矛盾", "description": "相反する命題を提示する", "pattern": "A → not_A"}
+{"id": "revelation", "name": "開示", "description": "隠されていた事実を明かす", "pattern": "hidden_X → reveal_X"}
+{"id": "analogy", "name": "比喩", "description": "異なるものを結びつけて見せる", "pattern": "X → Y"}
