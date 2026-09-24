@@ -3,23 +3,74 @@ name: ingest
 on:
   workflow_dispatch:
   schedule:
-    # daily at 05:00 UTC
-    - cron: "0 5 * * *"
+    # daily at 04:00 UTC
+    - cron: "0 4 * * *"
 
 jobs:
-  ingest:
+  discover:
+    name: Discover bonsai org repos
     runs-on: ubuntu-latest
+    outputs:
+      repo-names: ${{ steps.discover.outputs.repo-names }}
+    steps:
+      - name: Discover repos with markdown
+        id: discover
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const repos = [];
+            let page = 1;
+            const perPage = 100;
+
+            while (true) {
+              const { data: items } = await github.rest.repos.listForOrg({
+                org: 'bonsai',
+                type: 'all',
+                per_page: perPage,
+                page: page,
+              });
+              if (!items.length) break;
+
+              for (const r of items) {
+                if (r.fork) continue;
+                if (r.archived) continue;
+                if (r.name === 'talk-db') continue; // skip itself
+                repos.push(r.name);
+              }
+              page++;
+            }
+
+            // Filter: keep only repos likely to have articles
+            const article_repos = repos.filter(name => {
+              const n = name.toLowerCase();
+              const tech_excludes = ['node_modules', 'build', 'dist', '__pycache__'];
+              if (tech_excludes.some(e => n.includes(e))) return false;
+
+              const article_keywords = [
+                'essay', 'sf', 'novel', 'shortstory', 'poem', 'fiction',
+                'dialogue', 'talkscript', 'rakugo', '落語', '小説',
+                'essay', 'research', 'think', 'note', 'memo',
+                'knowledge', 'wiki', 'article'
+              ];
+              if (article_keywords.some(k => n.includes(k))) return true;
+
+              // Allow repos with short names (likely text-focused)
+              return n.length <= 20 && !n.startsWith('test') && !n.startsWith('tmp');
+            });
+
+            core.setOutput('repo-names', JSON.stringify(article_repos));
+            console.log(`Found ${article_repos.length} candidate repos: ${article_repos.join(', ')}`);
+
+  ingest:
+    name: Ingest all repos
+    runs-on: ubuntu-latest
+    needs: discover
     permissions:
       contents: write
     steps:
       - name: Checkout talk-db
         uses: actions/checkout@v4
-
-      - name: Checkout source repos
-        uses: actions/checkout@v4
-        with:
-          repository: bonsai/talkscripts
-          path: _src/talkscripts
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,13 +80,45 @@ jobs:
       - name: Install deps
         run: pip install -r scripts/requirements.txt
 
-      - name: Ingest works
-        run: python scripts/ingest.py --repos _src/talkscripts --output data
+      - name: Clone and scan discovered repos
+        id: clone
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAMES: ${{ needs.discover.outputs.repo-names }}
+        run: |
+          set -e
+          mkdir -p _src
+
+          # Parse JSON array from env
+          python3 -c "
+          import json, subprocess, sys
+          repos = json.loads('${REPO_NAMES}')
+          for name in repos:
+              url = f'https://x-access-token:\${{GITHUB_TOKEN}}@github.com/bonsai/{name}.git'
+              print(f'Cloning {name}...')
+              subprocess.run(['git', 'clone', '--depth', '1', url, f'_src/{name}'], check=True)
+              print(f'  -> _src/{name}')
+          "
+
+          echo "src_count=$(ls _src/ | wc -l)" >> $GITHUB_OUTPUT
+          echo "src_repos=$(ls _src/)" >> $GITHUB_OUTPUT
+          ls -la _src/
+
+      - name: Ingest all repos
+        run: python scripts/ingest.py --repos $(ls _src/ | sed 's|^|_src/|' | paste -sd' ') --output data
+
+      - name: Extract relations from passages
+        run: |
+          python scripts/extract_relations.py \
+            --input data/passages.jsonl \
+            --relations data/relations.jsonl \
+            --output data/relations.jsonl \
+            --mode append
 
       - name: Build SQLite DB
         run: python scripts/build_db.py --data data --db db/talk.db
 
-      - name: Commit changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -43,6 +126,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "auto: ingest $(date -u +%Y-%m-%d)"
+            git commit -m "auto: ingest $(date -u +%Y-%m-%d) + relations"
             git push
           fi
