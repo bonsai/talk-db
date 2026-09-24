@@ -115,6 +115,17 @@ jobs:
             --output data/relations.jsonl \
             --mode append
 
+      - name: Score relations with JEV
+        run: |
+          python3 scripts/jeva.py \
+            --relations data/relations.jsonl \
+            --instruction talk_material \
+            --output data/relations_scored.jsonl \
+            --min-score 0.5
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        if: always()
+
       - name: Build SQLite DB
         run: python scripts/build_db.py --data data --db db/talk.db
 
@@ -126,6 +137,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "auto: ingest $(date -u +%Y-%m-%d) + relations"
+            git commit -m "auto: ingest $(date -u +%Y-%m-%d) + JEV scoring"
             git push
           fi
