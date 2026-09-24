@@ -75,9 +75,6 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'repo-names={json.dumps(result)}\n')
           "
-        env:
-          SKIP: ${{ env.SKIP }}
-          INCLUDE: ${{ env.INCLUDE }}
 
   ingest:
     name: Ingest all repos
