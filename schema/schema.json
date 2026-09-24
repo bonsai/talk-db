@@ -10,7 +10,7 @@
         "path": "TEXT NOT NULL",
         "title": "TEXT",
         "author": "TEXT",
-        "type": "TEXT",
+        "type": "TEXT CHECK(type IN ('essay','fiction','dialogue','poem','note','research','script','other'))",
         "genre": "TEXT (JSON array)",
         "language": "TEXT",
         "summary": "TEXT",
@@ -64,5 +64,8 @@
       "source": "passages"
     }
   },
-  "futureTables": ["relations", "talk_patterns", "characters", "sources"]
+  "enums": {
+    "works.type": ["essay", "fiction", "dialogue", "poem", "note", "research", "script", "other"]
+  },
+  "futureTables": ["characters", "sources"]
 }

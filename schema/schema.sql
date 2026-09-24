@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS works (
     path TEXT NOT NULL,
     title TEXT,
     author TEXT,
-    type TEXT,            -- fiction / essay / script / poem / other
-    genre TEXT,           -- JSON array ["SF", "哲学"]
+    type TEXT CHECK(type IN ('essay','fiction','dialogue','poem','note','research','script','other')),
+                          -- 作品の存在論：随筆/小説/対話/詩/メモ/研究/台本/その他
+    genre TEXT,           -- JSON array ["SF", "哲学"]。ジャンルは type と分離
     language TEXT,
     summary TEXT,
     source_url TEXT,
@@ -85,6 +86,40 @@ CREATE TRIGGER IF NOT EXISTS passages_au AFTER UPDATE ON passages BEGIN
     VALUES (NEW.rowid, NEW.text);
 END;
 
--- 将来的に追加するテーブル（定義のみ）
--- relations: SVO 形式の意味関係
--- talk_patterns: talkscripts 用パターン
+-- SVO / 意味関係（世界の状態と操作として読む）
+CREATE TABLE IF NOT EXISTS relations (
+    id TEXT PRIMARY KEY,
+    subject TEXT NOT NULL,
+    subject_type TEXT,    -- entity / concept
+    predicate TEXT NOT NULL,
+    object TEXT,
+    object_type TEXT,
+    passage_id TEXT REFERENCES passages(id) ON DELETE SET NULL,
+    work_id TEXT REFERENCES works(id) ON DELETE CASCADE,
+    confidence REAL,
+    extractor TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_relations_subject ON relations(subject);
+CREATE INDEX IF NOT EXISTS idx_relations_predicate ON relations(predicate);
+CREATE INDEX IF NOT EXISTS idx_relations_object ON relations(object);
+
+-- talkscripts 用パターン
+CREATE TABLE IF NOT EXISTS talk_patterns (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    pattern TEXT
+);
+
+-- passage ↔ talk_pattern 紐付け
+CREATE TABLE IF NOT EXISTS passage_patterns (
+    passage_id TEXT NOT NULL REFERENCES passages(id) ON DELETE CASCADE,
+    pattern_id TEXT NOT NULL REFERENCES talk_patterns(id) ON DELETE CASCADE,
+    confidence REAL,
+    extractor TEXT,
+    PRIMARY KEY (passage_id, pattern_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pp_pattern ON passage_patterns(pattern_id);
+CREATE INDEX IF NOT EXISTS idx_pp_passage ON passage_patterns(passage_id);

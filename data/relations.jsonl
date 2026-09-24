@@ -1,0 +1,8 @@
+{"id": "rel-001", "subject": "AI", "subject_type": "entity", "predicate": "知る", "object": "孤独", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-002", "subject": "人間", "subject_type": "entity", "predicate": "恐れる", "object": "AI", "object_type": "entity", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-003", "subject": "記憶", "subject_type": "abstract", "predicate": "失われる", "object": "自我", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-004", "subject": "シャノン", "subject_type": "entity", "predicate": "発見", "object": "情報理論", "object_type": "concept", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-005", "subject": "仏教", "subject_type": "concept", "predicate": "問う", "object": "空", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-006", "subject": "LLM", "subject_type": "entity", "predicate": "生成", "object": "意味", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-007", "subject": "人間", "subject_type": "entity", "predicate": "記録する", "object": "歴史", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}
+{"id": "rel-008", "subject": "技術", "subject_type": "abstract", "predicate": "問う", "object": "倫理", "object_type": "abstract", "passage_id": null, "work_id": null, "confidence": 1.0, "extractor": "manual"}

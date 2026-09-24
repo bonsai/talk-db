@@ -39,7 +39,10 @@ def run():
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     conn.executescript(schema)
 
-    tables = ["works", "passages", "concepts", "passage_concepts"]
+    tables = [
+        "works", "passages", "concepts", "passage_concepts",
+        "relations", "talk_patterns", "passage_patterns",
+    ]
     for table in tables:
         records = load_jsonl(data_dir / f"{table}.jsonl")
         if not records:

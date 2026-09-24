@@ -78,14 +78,26 @@ def detect_title(text: str, fallback: str) -> str:
     return fallback
 
 
-def detect_type(path: Path) -> str:
+# works.type の存在論enum
+# essay / fiction / dialogue / poem / note / research / script / other
+TYPE_RULES = [
+    # (優先度, 条件callable, type値)
+    ("dialogue", lambda p, n, c: "対話" in str(p) or "dialogue" in n or "親子対話" in str(p)),
+    ("poem", lambda p, n, c: "poem" in n or "詩" in str(p)),
+    ("research", lambda p, n, c: "research" in n or "論文" in n or "paper" in n),
+    ("script", lambda p, n, c: "台本" in str(p) or "script" in n or "知恵の館" in str(p) or "talk" in n),
+    ("essay", lambda p, n, c: "essay" in n or "随筆" in str(p) or "評論" in str(p) or "考察" in str(p)),
+    ("fiction", lambda p, n, c: "shortstory" in n or "novel" in n or "sf" in n or "物語" in str(p)),
+    ("note", lambda p, n, c: "note" in n or "memo" in n or "断片" in str(p) or "seed" in str(p)),
+]
+
+
+def detect_type(path: Path, content: str = "") -> str:
     name = path.name.lower()
-    if "shortstory" in name or "novel" in name or "sf" in name:
-        return "fiction"
-    if "essay" in name:
-        return "essay"
-    if "talk" in name or "script" in name:
-        return "script"
+    path_str = str(path).lower()
+    for t, fn in TYPE_RULES:
+        if fn(path_str, name, content.lower()):
+            return t
     return "other"
 
 
@@ -172,7 +184,7 @@ def ingest_repo(repo_path: Path, concept_map: dict, existing_work_ids: set):
             continue
         existing_work_ids.add(work_id)
 
-        wtype = detect_type(md)
+        wtype = detect_type(md, content)
         genre = detect_genre(content, md)
         source_url = f"https://github.com/{repo_full}/blob/{commit_sha or 'main'}/{rel_path}"
 
