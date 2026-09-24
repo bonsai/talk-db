@@ -13,16 +13,45 @@ from pathlib import Path
 from typing import List, Optional
 
 
-# 文章系リポジトリとして期待される名前パターン
-NAMES_WITH_ARTICLES = [
-    "essay", "sf", "novel", "shortstory", "poem",
-    "fiction", "dialogue", "talkscript", "落語", "小説",
-]
+# bonsai org の文章系リポジトリ一覧
+KNOWN_TEXT_REPOS = {
+    "research-rakugo",
+    "talkscripts",
+    "unipath-skills",
+    "writing",
+    "win-tips",
+    "tips-word",
+    "skill-crawler",
+    "skill-consolidator",
+    "pi-config-memo",
+    "mimic-me",
+    "hakkutu",
+    "char-distribution",
+    "yoshimoto-theater",
+    "repos-analyze",
+    "research-jev",
+    "life-design-skill",
+    "houki-skill",
+}
 
-# 技術系リポジトリとして除外する名前パターン
-NAMES_EXCLUDE_TECH = [
-    "node_modules", ".git", "build", "dist", "__pycache__",
-]
+# 除外すべきコードリポジトリ
+SKIP_REPOS = {
+    "talk-db",  # skip itself
+    "agents",
+    "wf-errors",
+    "issues",
+    "localbqml",
+    "bons.ai",
+    "emoji-shiritori",
+    "gh-chatgpt-ext",
+    "idol-playlist",
+    "showa-covers",
+    "leanvj",
+    "terminal-capture",
+    "plego",
+    "idol-db",
+    "kimura",
+}
 
 # 文章系ファイル拡張子
 ARTICLE_EXTENSIONS = {".md", ".txt", ".mdx", ".markdown"}
@@ -159,6 +188,9 @@ def discover(repo_root: Path, min_md_count: int = 3, min_score: int = 2) -> List
             continue
         if item.name.startswith("."):
             continue
+        if item.name in SKIP_REPOS:
+            print(f"skip (known code repo): {item.name}", file=sys.stderr)
+            continue
 
         md_count = count_md_files(item)
         if md_count < min_md_count:
@@ -171,6 +203,11 @@ def discover(repo_root: Path, min_md_count: int = 3, min_score: int = 2) -> List
         line_count = count_lines_md_files(item)
         result = classify_candidate(item, md_count, line_count)
         result["score"] += line_count // 1000  # 文章量ボーナス
+
+        # 既知の文章リポジトリはスコアを補正
+        if item.name in KNOWN_TEXT_REPOS:
+            result["score"] += 3  # Known text repo bonus
+            result["known"] = True
 
         if result["score"] >= min_score and not result["is_code_heavy"]:
             candidates.append(result)

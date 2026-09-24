@@ -41,22 +41,50 @@ jobs:
               page++;
             }
 
-            // Filter: keep only repos likely to have articles
+            // Text-focused repos to include
+            const text_repos = new Set([
+              'research-rakugo',
+              'talkscripts',
+              'unipath-skills',
+              'writing',
+              'win-tips',
+              'tips-word',
+              'skill-crawler',
+              'skill-consolidator',
+              'pi-config-memo',
+              'mimic-me',
+              'hakkutu',
+              'char-distribution',
+              'yoshimoto-theater',
+              'repos-analyze',
+              'research-jev',
+              'life-design-skill',
+              'houki-skill',
+            ]);
+
+            // Skip code-only repos
+            const skip_repos = new Set([
+              'talk-db', // skip itself
+              'agents',
+              'wf-errors',
+              'issues',
+              'localbqml',
+              'bons.ai',
+              'emoji-shiritori',
+              'gh-chatgpt-ext',
+              'idol-playlist',
+              'showa-covers',
+              'leanvj',
+              'terminal-capture',
+              'plego',
+              'idol-db',
+              'kimura',
+            ]);
+
             const article_repos = repos.filter(name => {
-              const n = name.toLowerCase();
-              const tech_excludes = ['node_modules', 'build', 'dist', '__pycache__'];
-              if (tech_excludes.some(e => n.includes(e))) return false;
-
-              const article_keywords = [
-                'essay', 'sf', 'novel', 'shortstory', 'poem', 'fiction',
-                'dialogue', 'talkscript', 'rakugo', '落語', '小説',
-                'essay', 'research', 'think', 'note', 'memo',
-                'knowledge', 'wiki', 'article'
-              ];
-              if (article_keywords.some(k => n.includes(k))) return true;
-
-              // Allow repos with short names (likely text-focused)
-              return n.length <= 20 && !n.startsWith('test') && !n.startsWith('tmp');
+              const skip = skip_repos.has(name);
+              const is_text = text_repos.has(name);
+              return !skip && (is_text || text_repos.has(name));
             });
 
             core.setOutput('repo-names', JSON.stringify(article_repos));
