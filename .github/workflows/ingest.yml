@@ -6,9 +6,6 @@ on:
     # daily at 04:00 UTC
     - cron: "0 4 * * *"
 
-permissions:
-  contents: read
-
 env:
   SKIP: "talk-db agents wf-errors issues localbqml bons.ai emoji-shiritori gh-chatgpt-ext idol-playlist showa-covers leanvj terminal-capture plego idol-db kimura chrome-ext-dummy cli-ext-man ext-cli suno-gen-crx community-based-sales auto-recap-skill journal r2r"
   INCLUDE: "research-rakugo talkscripts unipath-skills writing win-tips tips-word skill-crawler skill-consolidator pi-config-memo mimic-me hakkutu char-distribution yoshimoto-theater repos-analyze research-jev life-design-skill houki-skill essay-xxx SFショートショート SF落語 MX LX AX TX OX IX DDD BX WX Xx idol-podcast research-community burstha-p idol-p-agent producer-agent idol-live stage-search jobs-jules write-book progressive-life mimicme skill-template blade baku-go work-lexicon bqmlite-go inu.go jeva ext-install-skill ext-install-ext idol-portal wiki REORGANIZE mensetsukan larry ants-essay oppo-research CHO-HAN YonerAI CL4R1T4S word-ontology Mushochika idol-lab pi-skills WORKFLOW CHAT Tsumete Tsumi vocab-highlight rekai recap"
@@ -24,57 +21,44 @@ jobs:
         id: discover
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SKIP: ${{ env.SKIP }}
-          INCLUDE: ${{ env.INCLUDE }}
         run: |
           set -e
-          
-          # Text-focused repos to include
-          INCLUDE="research-rakugo talkscripts unipath-skills writing win-tips tips-word skill-crawler skill-consolidator pi-config-memo mimic-me hakkutu char-distribution yoshimoto-theater repos-analyze research-jev life-design-skill houki-skill essay-xxx SFショートショート SF落語 MX LX AX TX OX IX DDD BX WX Xx idol-podcast research-community burstha-p idol-p-agent producer-agent idol-live stage-search jobs-jules write-book progressive-life mimicme skill-template blade baku-go work-lexicon bqmlite-go inu.go jeva ext-install-skill ext-install-ext idol-portal wiki REORGANIZE mensetsukan larry ants-essay oppo-research CHO-HAN YonerAI CL4R1T4S word-ontology Mushochika idol-lab pi-skills WORKFLOW CHAT Tsumete Tsumi vocab-highlight rekai recap"
-          
-          # Repos to skip
-          SKIP="talk-db agents wf-errors issues localbqml bons.ai emoji-shiritori gh-chatgpt-ext idol-playlist showa-covers leanvj terminal-capture plego idol-db kimura chrome-ext-dummy cli-ext-man ext-cli suno-gen-crx community-based-sales auto-recap-skill journal r2r"
-          
-          python3 -c "
+          python3 << 'PYEOF'
           import json, subprocess, sys, os
-
+          
           skip = set(os.environ['SKIP'].split())
           include = set(os.environ['INCLUDE'].split())
           
           repos = []
-          # Get all public repos for bonsai user
-          url = 'https://api.github.com/users/bonsai/repos?per_page=100&type=all'
+          page = 1
           
-          while url:
+          while True:
+              url = f'https://api.github.com/users/bonsai/repos?per_page=100&type=all&page={page}'
               proc = subprocess.run(
-                  ['gh', 'api', url, '--jq', '.[].name,.is_fork,.archived'],
+                  ['gh', 'api', url, '--jq', '.[].name'],
                   capture_output=True, text=True
               )
               if proc.returncode != 0:
                   print(f'gh api failed: {proc.stderr}', file=sys.stderr)
                   break
               
-              lines = proc.stdout.strip().split('\n')
-              i = 0
-              while i + 2 < len(lines):
-                  name = lines[i]
-                  fork = lines[i+1] == 'true'
-                  archived = lines[i+2] == 'true'
-                  if not fork and not archived:
-                      repos.append(name)
-                  i += 3
-              
-              if len(lines) < 300:  # 100 repos * 3 fields
+              names = [n for n in proc.stdout.strip().split('\n') if n]
+              if not names:
                   break
-              url = url.split('&page=')[0] + f'&page={url.split("page=")[-1].split("&")[0] if "page=" in url else 2}'
-
-          # Filter
+              
+              repos.extend(names)
+              
+              if len(names) < 100:
+                  break
+              page += 1
+          
+          # Filter: only include repos in our list
           result = [r for r in repos if r in include and r not in skip]
           print(f'Found {len(result)} candidate repos: {", ".join(result)}')
           
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'repo-names={json.dumps(result)}\n')
-          "
+          PYEOF
 
   ingest:
     name: Ingest all repos
@@ -103,8 +87,7 @@ jobs:
           set -e
           mkdir -p _src
 
-          # Clone each repo using GITHUB_TOKEN (auto-provided)
-          python3 -c "
+          python3 << 'PYEOF'
           import json, subprocess, sys, os
           repos = json.loads(os.environ['REPO_NAMES'])
           token = os.environ.get('GH_TOKEN', '')
@@ -113,7 +96,7 @@ jobs:
               print(f'Cloning {name}...')
               subprocess.run(['git', 'clone', '--depth', '1', url, f'_src/{name}'], check=True)
               print(f'  -> _src/{name}')
-          "
+          PYEOF
 
           echo "src_count=$(ls _src/ | wc -l)" >> $GITHUB_OUTPUT
           echo "src_repos=$(ls _src/)" >> $GITHUB_OUTPUT
