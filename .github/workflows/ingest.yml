@@ -8,7 +8,7 @@ on:
 
 jobs:
   discover:
-    name: Discover bonsai org repos
+    name: Discover bonsai user repos
     runs-on: ubuntu-latest
     outputs:
       repo-names: ${{ steps.discover.outputs.repo-names }}
@@ -17,15 +17,15 @@ jobs:
         id: discover
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN_PAT }}
           script: |
             const repos = [];
             let page = 1;
             const perPage = 100;
 
             while (true) {
-              const { data: items } = await github.rest.repos.listForOrg({
-                org: 'bonsai',
+              const { data: items } = await github.rest.repos.listForUser({
+                username: 'bonsai',
                 type: 'all',
                 per_page: perPage,
                 page: page,
