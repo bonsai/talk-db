@@ -50,7 +50,7 @@ def run():
         columns = list(records[0].keys())
         placeholders = ", ".join(["?"] * len(columns))
         cols = ", ".join(columns)
-        sql = f"INSERT INTO {table} ({cols}) VALUES ({placeholders})"
+        sql = f"INSERT OR REPLACE INTO {table} ({cols}) VALUES ({placeholders})"
         # SQLite can only handle scalar values; convert lists/dicts to JSON strings
         for rec in records:
             row = []
