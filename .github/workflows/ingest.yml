@@ -99,8 +99,7 @@ jobs:
           PYEOF
 
           echo "src_count=$(ls _src/ | wc -l)" >> $GITHUB_OUTPUT
-          echo "src_repos=$(ls _src/)" >> $GITHUB_OUTPUT
-          ls -la _src/
+          ls -la _src/ | wc -l
 
       - name: Ingest all repos
         run: python scripts/ingest.py --repos $(ls _src/ | sed 's|^|_src/|' | paste -sd' ') --output data
